@@ -302,14 +302,62 @@ class ModelComparison:
                   save: bool=False, 
                   show: bool=True) -> None:
         '''plots multiple canvases with different metrics'''
-        for metric in metric_list:
-            self.plot_metric_per_set_size(metric, save=save, show=show)
         for metric in metric_list_for_labels:
             self.plot_metric_per_label(metric, figsize=figsize, save=save, show=show)
+        
+        self.plot_label_distribution(figsize=figsize, save=save, show=show)
+        
+        for metric in metric_list:
+            self.plot_metric_per_set_size(metric, save=save, show=show)
             
         self.plot_set_sizes_distribution(figsize=figsize, save=save, show = show)
         self.plot_set_sizes_differences_distribution(figsize=figsize, save=save, show = show)
         self.plot_per_basket_errors_distribution(figsize=figsize, save=save, show=show)
+
+    def plot_label_distribution(self, 
+                                figsize: Tuple[int, int] = (18, 10), 
+                                save: bool=False, 
+                                show: bool=True) -> None:
+        '''this function supports plotting of distribution of multiple arrays'''
+        # Calculate the number of labels
+        gt = self.experiments[0].gt
+        num_labels = gt.shape[1]
+        print(num_labels)
+        # Calculate label occurrences for each dataset
+        occurrences = [gt.sum(axis=0) / gt.shape[0]]
+        model_names = ['Ground Truth']
+        for exp in self.experiments:
+            occurrences.append(exp.pred_labels.sum(axis=0) / exp.pred_labels.shape[0])
+            model_names.append(exp.model_name)
+        # Determine the number of groups and bar width
+        n_groups = num_labels
+        n_labels = len(occurrences)
+        bar_width = 1 / (n_labels + 1)
+        # Create figure
+        plt.figure(figsize=figsize)
+        # Create an index for each group
+        index = np.arange(n_groups)
+        # plt.bar(index + 0 * bar_width, gt.sum(axis=0) / gt.shape[0], bar_width, label=f'Ground truth', alpha=0.5)
+        
+
+        # Plot each dataset
+        for i, occ in enumerate(occurrences):
+            plt.bar(index + i * bar_width, occ, bar_width, label=f'{model_names[i]}', alpha=0.5)
+
+        plt.xlabel('Label Index')
+        plt.ylabel('Frequency')
+        plt.title('Distribution of Label Frequencies')
+        plt.xticks(index + bar_width / 2 * (n_labels - 1), index)
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        
+        if save:
+            plt.savefig(os.path.join(self.plots_path, f'Label distribution on dataset {self.dataset_name}.png'), dpi=300, bbox_inches='tight', facecolor='white')
+
+        
+        if show:
+            plt.show()
 
     def plot_metric_per_label(self, 
                               metric: Metric, 
