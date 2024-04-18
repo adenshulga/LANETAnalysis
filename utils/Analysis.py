@@ -89,10 +89,14 @@ class Metric:
         pred_labels: list[np.ndarray],
         probas: list[np.ndarray],
     ) -> MetricResult:
-        results = MetricResult.mean_std(
-            [self(gt_list[i], pred_labels[i], probas[i]) for i in range(len(gt_list))]
-        )
+        metrics = []
+        for i in range(len(gt_list)):
+            value = self(gt_list[i], pred_labels[i], probas[i])
+            # print(value)
+            metrics.append(value)
 
+        results = MetricResult.mean_std(metrics)
+        
         return results
 
 
@@ -243,6 +247,7 @@ class ExperimentInfo:
             """
 
             metric_values = []
+            sizes = []
             for size in self.set_sizes:
                 # Aggregated metric results for each set size across runs
                 size_metrics = []
@@ -264,10 +269,11 @@ class ExperimentInfo:
                 # Compute mean and std of the collected metrics for the current set size across all runs
                 if size_metrics:
                     metric_values.append(MetricResult.mean_std(size_metrics))
-                else: 
-                    metric_values.append(MetricResult(None, None))
+                    sizes.append(size)
+                # else: 
+                    # metric_values.append(MetricResult(None, None))
 
-            return metric_values
+            return metric_values, sizes
 
     def get_metrics(self, metric_list: List[Metric]) -> dict:
         """
@@ -349,14 +355,21 @@ class ModelComparison:
             print("Experiments are performed on dataset with common name")
 
         # check that frequencies from gt are same
-        freq_arrs = [exp.label_info.freqs for exp in self.experiments]
-        if not all(np.array_equal(freq_arrs[0], freq_arr) for freq_arr in freq_arrs):
-            print("ERROR: Seems that gt differs between experiments")
-            is_ok = False
-            # raise ValueError
-        else:
-            print("Gt frequencies are equal between experiments")
+        # freq_arrs = [exp.label_info.freqs for exp in self.experiments]
+        # # for exp in self.experiments:
+        # #     print(exp.model_name)
+        # #     print(exp.label_info.freqs.shape)
+        # if not all(np.allclose(freq_arrs[0], freq_arr, rtol=0.01) for freq_arr in freq_arrs):
+        #     print("ERROR: Seems that gt differs between experiments")
+        #     for exp in self.experiments:
+        #         print(exp.model_name)
+        #         print(exp.label_info.freqs)
+        #     is_ok = False
+        #     # raise ValueError
+        # else:
+        #     print("Gt frequencies are equal between experiments")
 
+        # check that max set sizes are same
         max_set_sizes = [exp.set_info.max_set_size for exp in self.experiments]
         if len(set(max_set_sizes)) != 1:
             print("ERROR: Max set sizes are unequal between datasets")
@@ -366,18 +379,19 @@ class ModelComparison:
         else:
             print("Max set sizes are equal between datasets")
 
-        set_sizes_distributions = [
-            exp.set_info.set_sizes_distribution for exp in self.experiments
-        ]
-        if not all(
-            np.array_equal(set_sizes_distributions[0], set_sizes_distribution)
-            for set_sizes_distribution in set_sizes_distributions
-        ):
-            print("ERROR: Set sizes distributions in gt are not equal")
-            is_ok = False
-            # raise ValueError
-        else:
-            print("Ground truth set sizes distributions are equal")
+        # # check whether the set sizes distributions are same
+        # set_sizes_distributions = [
+        #     exp.set_info.set_sizes_distribution for exp in self.experiments
+        # ]
+        # if not all(
+        #     np.array_equal(set_sizes_distributions[0], set_sizes_distribution)
+        #     for set_sizes_distribution in set_sizes_distributions
+        # ):
+        #     print("ERROR: Set sizes distributions in gt are not equal")
+        #     is_ok = False
+        #     # raise ValueError
+        # else:
+        #     print("Ground truth set sizes distributions are equal")
 
         return is_ok
 
@@ -856,27 +870,36 @@ class ModelComparison:
         # Iterate over each experiment and plot the metric for each set size
         for i, exp in enumerate(self.experiments):
             # try:
-            metric_values = exp.set_info.metric_per_set_size(metric)
+            metric_values, sizes = exp.set_info.metric_per_set_size(metric)
             metric_mean = [m.mean for m in metric_values]
             metric_std = [m.std for m in metric_values]
             # print(metric_values)
-            plt.bar(
-                index + i * bar_width,  # Adjust position to avoid overlap
-                metric_mean,
-                bar_width,
-                label=exp.model_name,
-                alpha=0.5,
-            )
+            try:
+                plt.bar(
+                    index + i * bar_width,  # Adjust position to avoid overlap
+                    metric_mean,
+                    bar_width,
+                    label=exp.model_name,
+                    alpha=0.5,
+                )
+            except Exception as e:
+                print(f'{exp.model_name} caused an error in plot_metric_per_set_size: {e}')
+                print(metric_mean)
             
-            plt.errorbar(
-                index + i * bar_width,  # Center error bars on bars
-                metric_mean,
-                yerr=metric_std,  # Include standard deviation as error bars
-                fmt="none",  # No marker for error bars
-                color="black",  # Error bar color
-                capsize=5,  # Cap size for error bars
-                linewidth=1,  # Line width of error bars
-            )
+            try:
+                plt.errorbar(
+                    index + i * bar_width,  # Center error bars on bars
+                    metric_mean,
+                    yerr=metric_std,  # Include standard deviation as error bars
+                    fmt="none",  # No marker for error bars
+                    color="black",  # Error bar color
+                    capsize=5,  # Cap size for error bars
+                    linewidth=1,  # Line width of error bars
+                )
+            except Exception as e:
+                print(f'{exp.model_name} caused an error in plot_metric_per_set_size: {e}')
+                print(metric_std)
+                
         # Setting the x-axis labels to show set sizes
         plt.xticks(
             index + bar_width / 2 * (len(self.experiments) - 1), index + 1

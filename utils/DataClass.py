@@ -184,14 +184,14 @@ class DataClass:
         return (gt_list, scores_list, probas_list, labels_list)
 
 
-class ProcessSFCNTSPFile(ProcessedDataset):
-    path_to_preds = "/app/SFCNTSP-onemore/model_pred_and_gt"
+class ProcessFile(ProcessedDataset):
+    # path_to_preds = "/app/All_models/model_pred_and_gt/SFCNTSP"
 
     def load_from_path(self, dataset_name: str, type: str) -> list:
         """
         Modified to return a list of numpy arrays for each run.
         """
-        runs_path = f"{ProcessSFCNTSPFile.path_to_preds}/{dataset_name}"
+        runs_path = f"{self.path_to_preds}/{dataset_name}"
         data_list = []
 
         # List all run directories
@@ -209,15 +209,16 @@ class ProcessSFCNTSPFile(ProcessedDataset):
 
         return data_list
 
-    def __init__(self, dataset_name: str, model_name: str = "SFCNTSP") -> None:
+    def __init__(self, dataset_name: str, path_to_preds : str, model_name: str) -> None:
         super().__init__()
         self.dataset_name = dataset_name
         self.model_name = model_name
+        self.path_to_preds = path_to_preds
 
         self.pred_conf_scores_test = self.load_from_path(dataset_name, "pred_test")
         self.gt_test_data = self.load_from_path(dataset_name, "gt_test")
-        self.pred_conf_scores_valid = self.load_from_path(dataset_name, "pred_validate")
-        self.gt_valid_data = self.load_from_path(dataset_name, "gt_validate")
+        self.pred_conf_scores_valid = self.load_from_path(dataset_name, "pred_valid")
+        self.gt_valid_data = self.load_from_path(dataset_name, "gt_valid")
 
     def conf_scores_test(self) -> list:
         "Returns processed to common format np.ndarray"
@@ -240,18 +241,18 @@ class ProcessSFCNTSPFile(ProcessedDataset):
 
 
 class ProcessGP(ProcessedDataset):
-    path_to_preds = (
-        f"/app/MyGP_topfreq/model_pred_and_gt"
-    )
+
 
     def load_from_path(self, dataset_name: str, type: str) -> str:
         "type is gt or pred"
-        path = f"{ProcessGP.path_to_preds}/{dataset_name}/{type}/data.csv"
+        path = f"{self.path_to_preds}/{dataset_name}/{type}/data.csv"
         return np.genfromtxt(path, delimiter=",")
 
-    def __init__(self, dataset_name: str, model_name: str = "GP_top_freq") -> None:
+    def __init__(self, dataset_name: str, path_to_preds: str, model_name: str = "GP_top_freq") -> None:
         self.dataset_name = dataset_name
         self.model_name = model_name
+
+        self.path_to_preds = path_to_preds
 
         self.pred_conf_scores_test = self.load_from_path(dataset_name, "pred_test")
         self.gt_test_data = self.load_from_path(dataset_name, "gt_test")
@@ -276,122 +277,246 @@ class ProcessGP(ProcessedDataset):
 
     def probas_valid(self):
         return [sigmoid(self.pred_conf_scores_valid)]
-
-
-class ProcessDNNTSPFile(ProcessedDataset):
-    """
-    Example realization of ProcessedDataset subclass.
-    The idea, that this child class incapsulates dataset format converting and loading it from path which is the user specifies
-    """
-
-    path_to_preds = f"/app/DNNTSP/model_pred_and_gt"
-
-    def load_from_path(self, dataset_name: str, type: str) -> list:
-        """
-        Modified to return a list of numpy arrays for each run.
-        """
-        runs_path = f"{ProcessDNNTSPFile.path_to_preds}/{dataset_name}"
-        data_list = []
-
-        # List all run directories
-        runs = [
-            d
-            for d in os.listdir(runs_path)
-            if os.path.isdir(os.path.join(runs_path, d)) and "run_" in d
-        ]
-        runs.sort(key=lambda x: int(x.split("_")[1]))  # Ensure ordered by run number
-
-        for run in runs:
-            path = f"{runs_path}/{run}/{type}/data.csv"
-            data = np.genfromtxt(path, delimiter=",")
-            data_list.append(data)
-
-        return data_list
-
-    def __init__(self, dataset_name: str, model_name: str = "DNNTSP") -> None:
-        super().__init__()
-        self.dataset_name = dataset_name
-        self.model_name = model_name
-
-        self.pred_conf_scores_test = self.load_from_path(dataset_name, "pred_test")
-        self.gt_test_data = self.load_from_path(dataset_name, "gt_test")
-        self.pred_conf_scores_valid = self.load_from_path(dataset_name, "pred_valid")
-        self.gt_valid_data = self.load_from_path(dataset_name, "gt_valid")
-
-    def conf_scores_test(self) -> list:
-        "Returns processed to common format np.ndarray"
-        return self.pred_conf_scores_test
-
-    def conf_scores_valid(self) -> list:
-        return self.pred_conf_scores_valid
-
-    def gt_test(self):
-        return self.gt_test_data
-
-    def gt_valid(self):
-        return self.gt_valid_data
-
-    def probas_test(self):
-        return [sigmoid(data) for data in self.pred_conf_scores_test]
-
-    def probas_valid(self):
-        return [sigmoid(data) for data in self.pred_conf_scores_valid]
     
-class ProcessTCMBNFile(ProcessedDataset):
-    """
-    Example realization of ProcessedDataset subclass.
-    The idea, that this child class incapsulates dataset format converting and loading it from path which is the user specifies
-    """
+# class ProcessLANET(ProcessedDataset):
+#     """
+#     Example realization of ProcessedDataset subclass.
+#     The idea, that this child class incapsulates dataset format converting and loading it from path which is the user specifies
+#     """
 
-    path_to_preds = f"/app/TCMBN/model_pred_and_gt"
+#     # path_to_preds = f"/app/TCMBN_and_LANET/model_pred_and_gt/LANET"
+#     path_to_preds = "/app/All_models/model_pred_and_gt/LANET"
 
-    def load_from_path(self, dataset_name: str, type: str) -> list:
-        """
-        Modified to return a list of numpy arrays for each run.
-        """
-        runs_path = f"{ProcessTCMBNFile.path_to_preds}/{dataset_name}"
-        data_list = []
 
-        # List all run directories
-        runs = [
-            d
-            for d in os.listdir(runs_path)
-            if os.path.isdir(os.path.join(runs_path, d)) and "run_" in d
-        ]
-        runs.sort(key=lambda x: int(x.split("_")[1]))  # Ensure ordered by run number
+#     def load_from_path(self, dataset_name: str, type: str) -> list:
+#         """
+#         Modified to return a list of numpy arrays for each run.
+#         """
+#         runs_path = f"{ProcessLANET.path_to_preds}/{dataset_name}"
+#         data_list = []
 
-        for run in runs:
-            path = f"{runs_path}/{run}/{type}/data.csv"
-            data = np.genfromtxt(path, delimiter=",")
-            data_list.append(data)
+#         # List all run directories
+#         runs = [
+#             d
+#             for d in os.listdir(runs_path)
+#             if os.path.isdir(os.path.join(runs_path, d)) and "run_" in d
+#         ]
+#         runs.sort(key=lambda x: int(x.split("_")[1]))  # Ensure ordered by run number
 
-        return data_list
+#         for run in runs:
+#             path = f"{runs_path}/{run}/{type}/data.csv"
+#             data = np.genfromtxt(path, delimiter=",")
+#             data_list.append(data)
 
-    def __init__(self, dataset_name: str, model_name: str = "DNNTSP") -> None:
-        super().__init__()
-        self.dataset_name = dataset_name
-        self.model_name = model_name
+#         return data_list
 
-        self.pred_conf_scores_test = self.load_from_path(dataset_name, "pred_test")
-        self.gt_test_data = self.load_from_path(dataset_name, "gt_test")
-        self.pred_conf_scores_valid = self.load_from_path(dataset_name, "pred_valid")
-        self.gt_valid_data = self.load_from_path(dataset_name, "gt_valid")
+#     def __init__(self, dataset_name: str, model_name: str = "LANET") -> None:
+#         super().__init__()
+#         self.dataset_name = dataset_name
+#         self.model_name = model_name
 
-    def conf_scores_test(self) -> list:
-        "Returns processed to common format np.ndarray"
-        return self.pred_conf_scores_test
+#         self.pred_conf_scores_test = self.load_from_path(dataset_name, "pred_test")
+#         self.gt_test_data = self.load_from_path(dataset_name, "gt_test")
+#         self.pred_conf_scores_valid = self.load_from_path(dataset_name, "pred_valid")
+#         self.gt_valid_data = self.load_from_path(dataset_name, "gt_valid")
 
-    def conf_scores_valid(self) -> list:
-        return self.pred_conf_scores_valid
+#     def conf_scores_test(self) -> list:
+#         "Returns processed to common format np.ndarray"
+#         return self.pred_conf_scores_test
 
-    def gt_test(self):
-        return self.gt_test_data
+#     def conf_scores_valid(self) -> list:
+#         return self.pred_conf_scores_valid
 
-    def gt_valid(self):
-        return self.gt_valid_data
+#     def gt_test(self):
+#         return self.gt_test_data
 
-    def probas_test(self):
-        return [sigmoid(data) for data in self.pred_conf_scores_test]
+#     def gt_valid(self):
+#         return self.gt_valid_data
 
-    def probas_valid(self):
-        return [sigmoid(data) for data in self.pred_conf_scores_valid]
+#     def probas_test(self):
+#         return [sigmoid(data) for data in self.pred_conf_scores_test]
+
+#     def probas_valid(self):
+#         return [sigmoid(data) for data in self.pred_conf_scores_valid]
+    
+# class ProcessTCMBN(ProcessedDataset):
+#     """
+#     Example realization of ProcessedDataset subclass.
+#     The idea, that this child class incapsulates dataset format converting and loading it from path which is the user specifies
+#     """
+
+#     # path_to_preds = f"/app/TCMBN_and_LANET/model_pred_and_gt/TCMBN"
+#     path_to_preds = "/app/All_models/model_pred_and_gt/TCMBN"
+
+
+#     def load_from_path(self, dataset_name: str, type: str) -> list:
+#         """
+#         Modified to return a list of numpy arrays for each run.
+#         """
+#         runs_path = f"{ProcessTCMBN.path_to_preds}/{dataset_name}"
+#         data_list = []
+
+#         # List all run directories
+#         runs = [
+#             d
+#             for d in os.listdir(runs_path)
+#             if os.path.isdir(os.path.join(runs_path, d)) and "run_" in d
+#         ]
+#         runs.sort(key=lambda x: int(x.split("_")[1]))  # Ensure ordered by run number
+
+#         for run in runs:
+#             path = f"{runs_path}/{run}/{type}/data.csv"
+#             data = np.genfromtxt(path, delimiter=",")
+#             data_list.append(data)
+
+#         return data_list
+
+#     def __init__(self, dataset_name: str, model_name: str = "TCMBN") -> None:
+#         super().__init__()
+#         self.dataset_name = dataset_name
+#         self.model_name = model_name
+
+#         self.pred_conf_scores_test = self.load_from_path(dataset_name, "pred_test")
+#         self.gt_test_data = self.load_from_path(dataset_name, "gt_test")
+#         self.pred_conf_scores_valid = self.load_from_path(dataset_name, "pred_valid")
+#         self.gt_valid_data = self.load_from_path(dataset_name, "gt_valid")
+
+#     def conf_scores_test(self) -> list:
+#         "Returns processed to common format np.ndarray"
+#         return self.pred_conf_scores_test
+
+#     def conf_scores_valid(self) -> list:
+#         return self.pred_conf_scores_valid
+
+#     def gt_test(self):
+#         return self.gt_test_data
+
+#     def gt_valid(self):
+#         return self.gt_valid_data
+
+#     def probas_test(self):
+#         return [sigmoid(data) for data in self.pred_conf_scores_test]
+
+#     def probas_valid(self):
+#         return [sigmoid(data) for data in self.pred_conf_scores_valid]
+
+
+# class ProcessDNNTSP(ProcessedDataset):
+#     """
+#     Example realization of ProcessedDataset subclass.
+#     The idea, that this child class incapsulates dataset format converting and loading it from path which is the user specifies
+#     """
+
+#     # path_to_preds = f"/app/DNNTSP/model_pred_and_gt"
+#     path_to_preds = "/app/All_models/model_pred_and_gt/DNNTSP"
+
+
+#     def load_from_path(self, dataset_name: str, type: str) -> list:
+#         """
+#         Modified to return a list of numpy arrays for each run.
+#         """
+#         runs_path = f"{ProcessDNNTSP.path_to_preds}/{dataset_name}"
+#         data_list = []
+
+#         # List all run directories
+#         runs = [
+#             d
+#             for d in os.listdir(runs_path)
+#             if os.path.isdir(os.path.join(runs_path, d)) and "run_" in d
+#         ]
+#         runs.sort(key=lambda x: int(x.split("_")[1]))  # Ensure ordered by run number
+
+#         for run in runs:
+#             path = f"{runs_path}/{run}/{type}/data.csv"
+#             data = np.genfromtxt(path, delimiter=",")
+#             data_list.append(data)
+
+#         return data_list
+
+#     def __init__(self, dataset_name: str, model_name: str = "DNNTSP") -> None:
+#         super().__init__()
+#         self.dataset_name = dataset_name
+#         self.model_name = model_name
+
+#         self.pred_conf_scores_test = self.load_from_path(dataset_name, "pred_test")
+#         self.gt_test_data = self.load_from_path(dataset_name, "gt_test")
+#         self.pred_conf_scores_valid = self.load_from_path(dataset_name, "pred_valid")
+#         self.gt_valid_data = self.load_from_path(dataset_name, "gt_valid")
+
+#     def conf_scores_test(self) -> list:
+#         "Returns processed to common format np.ndarray"
+#         return self.pred_conf_scores_test
+
+#     def conf_scores_valid(self) -> list:
+#         return self.pred_conf_scores_valid
+
+#     def gt_test(self):
+#         return self.gt_test_data
+
+#     def gt_valid(self):
+#         return self.gt_valid_data
+
+#     def probas_test(self):
+#         return [sigmoid(data) for data in self.pred_conf_scores_test]
+
+#     def probas_valid(self):
+#         return [sigmoid(data) for data in self.pred_conf_scores_valid]
+    
+# # class ProcessTCMBNFile(ProcessedDataset):
+# #     """
+# #     Example realization of ProcessedDataset subclass.
+# #     The idea, that this child class incapsulates dataset format converting and loading it from path which is the user specifies
+# #     """
+
+# #     path_to_preds = f"/app/TCMBN/model_pred_and_gt"
+
+# #     def load_from_path(self, dataset_name: str, type: str) -> list:
+# #         """
+# #         Modified to return a list of numpy arrays for each run.
+# #         """
+# #         runs_path = f"{ProcessTCMBNFile.path_to_preds}/{dataset_name}"
+# #         data_list = []
+
+# #         # List all run directories
+# #         runs = [
+# #             d
+# #             for d in os.listdir(runs_path)
+# #             if os.path.isdir(os.path.join(runs_path, d)) and "run_" in d
+# #         ]
+# #         runs.sort(key=lambda x: int(x.split("_")[1]))  # Ensure ordered by run number
+
+# #         for run in runs:
+# #             path = f"{runs_path}/{run}/{type}/data.csv"
+# #             data = np.genfromtxt(path, delimiter=",")
+# #             data_list.append(data)
+
+# #         return data_list
+
+# #     def __init__(self, dataset_name: str, model_name: str = "DNNTSP") -> None:
+# #         super().__init__()
+# #         self.dataset_name = dataset_name
+# #         self.model_name = model_name
+
+# #         self.pred_conf_scores_test = self.load_from_path(dataset_name, "pred_test")
+# #         self.gt_test_data = self.load_from_path(dataset_name, "gt_test")
+# #         self.pred_conf_scores_valid = self.load_from_path(dataset_name, "pred_valid")
+# #         self.gt_valid_data = self.load_from_path(dataset_name, "gt_valid")
+
+# #     def conf_scores_test(self) -> list:
+# #         "Returns processed to common format np.ndarray"
+# #         return self.pred_conf_scores_test
+
+# #     def conf_scores_valid(self) -> list:
+# #         return self.pred_conf_scores_valid
+
+# #     def gt_test(self):
+# #         return self.gt_test_data
+
+# #     def gt_valid(self):
+# #         return self.gt_valid_data
+
+# #     def probas_test(self):
+# #         return [sigmoid(data) for data in self.pred_conf_scores_test]
+
+# #     def probas_valid(self):
+# #         return [sigmoid(data) for data in self.pred_conf_scores_valid]
